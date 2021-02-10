@@ -1,5 +1,5 @@
 FROM        quay.io/prometheus/busybox:glibc
-MAINTAINER  Hirotaka Ichikawa <hichtakk@gmail.com>
+MAINTAINER  Sergey Cheperis
 
 COPY bin/ethminer_exporter /bin/ethminer_exporter
 

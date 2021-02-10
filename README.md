@@ -1,5 +1,5 @@
 # ethminer_exporter
-[![Package repository](https://img.shields.io/badge/packages-repository-b956e8.svg?style=flat-square)](https://hub.docker.com/r/hichtakk/ethminer_exporter/)
+[![Package repository](https://img.shields.io/badge/packages-repository-b956e8.svg?style=flat-square)](https://hub.docker.com/r/sergeycheperis/ethminer_exporter/)
 
 Prometheus exporter reporting ethminer hashrate  
 

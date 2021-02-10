@@ -1,6 +1,6 @@
 .PHONY: build clean test
 
-DOCKERHUB_ID := hichtakk
+DOCKERHUB_ID := sergeycheperis
 IMAGE_NAME := ethminer_exporter
 IMAGE_TAG := latest
 IMAGE_REPOSITORY := ${DOCKERHUB_ID}/${IMAGE_NAME}:${IMAGE_TAG}
