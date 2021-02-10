@@ -6,7 +6,7 @@ IMAGE_TAG := latest
 IMAGE_REPOSITORY := ${DOCKERHUB_ID}/${IMAGE_NAME}:${IMAGE_TAG}
 
 bin/ethminer_exporter:
-	@GOOS=linux GOARCH=amd64 go build -o bin/ethminer_exporter ./main.go
+	@GOOS=linux GOARCH=amd64 go build -o bin/ethminer_exporter src/*.go
 
 build: bin/ethminer_exporter
 	@docker build -t ${IMAGE_REPOSITORY} .
