@@ -1,0 +1,9 @@
+[Unit]
+Description=EthMiner_Exporter
+
+[Service]
+ExecStart=/opt/prometheus/ethminer_exporter
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
