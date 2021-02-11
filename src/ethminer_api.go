@@ -6,69 +6,69 @@ import (
 )
 
 type EthminerAPIResponse struct {
-	id      int    `json:"id"`
-	jsonRPC string `json:"jsonrpc"`
-	result  Result `json:"result"`
-	error   Error  `json:"error"`
+	ID      int    `json:"id"`
+	JSONRPC string `json:"jsonrpc"`
+	Result  Result `json:"result"`
+	Error   Error  `json:"error"`
 }
 
 type Result struct {
-	connection Connection `json:"connection"`
-	devices    []Device   `json:"devices"`
-	host       Host       `json:"host"`
-	mining     Mining     `json:"mining"`
-	monitors   Monitors   `json:"monitors"`
+	Connection Connection `json:"connection"`
+	Devices    []Device   `json:"devices"`
+	Host       Host       `json:"host"`
+	Mining     Mining     `json:"mining"`
+	Monitors   Monitors   `json:"monitors"`
 }
 
 type Connection struct {
-	connected int    `json:"connected"`
-	switches  int    `json:"switches"`
-	uri       string `json:"uri"`
+	Connected bool   `json:"connected"`
+	Switches  int    `json:"switches"`
+	URI       string `json:"uri"`
 }
 
 type Device struct {
-	_index   int            `json:"_index"`
-	_mode    string         `json:"_mode"`
-	hardware DeviceHardware `json:"hardware"`
-	mining   DeviceMining   `json:"mining"`
+	Index    int            `json:"_index"`
+	Mode     string         `json:"_mode"`
+	Hardware DeviceHardware `json:"hardware"`
+	Mining   DeviceMining   `json:"mining"`
 }
 
 type DeviceHardware struct {
-	name    string `json:"name"`
-	pci     string `json:"pci"`
-	sensors []int  `json:"sensors"`
-	_type   string `json:"type"`
+	Name    string     `json:"name"`
+	PCIID   string     `json:"pci"`
+	Sensors [3]float64 `json:"sensors"`
+	Type    string     `json:"type"`
 }
 
 type DeviceMining struct {
-	hashrate    string   `json:"hashrate"`
-	pauseReason string   `json:"pause_reason"`
-	paused      int      `json:"paused"`
-	segment     []string `json:"segment"`
-	shares      []int    `json:"shares"`
+	Hashrate    string    `json:"hashrate"`
+	PauseReason string    `json:"pause_reason"`
+	Paused      bool      `json:"paused"`
+	Segment     [2]string `json:"segment"`
+	Shares      [4]int    `json:"shares"`
 }
 
 type Host struct {
-	name    string `json:"name"`
-	runtime int    `json:"runtime"`
-	version string `json:"version"`
+	Name    string `json:"name"`
+	Runtime int    `json:"runtime"`
+	Version string `json:"version"`
 }
 
 type Mining struct {
-	difficulty   int    `json:"difficulty"`
-	epoch        int    `json:"epoch"`
-	epochChanges int    `json:"epoch_changes"`
-	hashrate     string `json:"hashrate"`
-	shares       []int  `json:"shares"`
+	Difficulty   float64 `json:"difficulty"`
+	Epoch        int     `json:"epoch"`
+	EpochChanges int     `json:"epoch_changes"`
+	Hashrate     string  `json:"hashrate"`
+	Shares       [4]int  `json:"shares"`
 }
 
 type Monitors struct {
-	temperatures []int `json:"temperatures"`
+	Temperatures [2]int `json:"temperatures"`
 }
 
 type Error struct {
-	code    int    `json:"code"`
-	message string `json:"message"`
+	Code    int    `json:"code"`
+	Message string `json:"message"`
 }
 
 func parseHashrate(value string) uint64 {
@@ -77,4 +77,11 @@ func parseHashrate(value string) uint64 {
 		return 0
 	}
 	return n
+}
+
+func boolToInt(value bool) int {
+	if value {
+		return 1
+	}
+	return 0
 }

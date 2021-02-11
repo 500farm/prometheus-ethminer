@@ -123,7 +123,7 @@ func (e *EthminerCollector) Collect(ch chan<- prometheus.Metric) {
 
 	message := "{\"id\":0, \"jsonrpc\": \"2.0\", \"method\":\"miner_getstatdetail\"}\n"
 	conn.Write([]byte(message))
-	buf := make([]byte, 1024)
+	buf := make([]byte, 65536)
 	n, err := conn.Read(buf)
 	if err != nil {
 		log.Fatalln(err)
@@ -133,85 +133,85 @@ func (e *EthminerCollector) Collect(ch chan<- prometheus.Metric) {
 	if err := json.Unmarshal(buf[:n], ethstats); err != nil {
 		log.Errorln(err)
 	}
-	if ethstats.error.code != 0 {
-		log.Errorln(ethstats.error.message)
+	if ethstats.Error.Code != 0 {
+		log.Errorln(ethstats.Error.Message)
 	}
 
-	result := ethstats.result
+	result := ethstats.Result
 
 	ch <- prometheus.MustNewConstMetric(
 		e.started_timestamp,
 		prometheus.GaugeValue,
-		float64(time.Now().Unix()-int64(result.host.runtime)),
-		result.host.version,
+		float64(time.Now().Unix()-int64(result.Host.Runtime)),
+		result.Host.Version,
 	)
 	ch <- prometheus.MustNewConstMetric(
 		e.connected,
 		prometheus.GaugeValue,
-		float64(result.connection.connected),
-		result.connection.uri,
+		float64(boolToInt(result.Connection.Connected)),
+		result.Connection.URI,
 	)
 
-	for _, device := range result.devices {
+	for _, device := range result.Devices {
 		labelValues := []string{
-			device.hardware.pci,
-			device.hardware.name,
-			device.hardware._type,
-			device._mode,
+			device.Hardware.PCIID,
+			device.Hardware.Name,
+			device.Hardware.Type,
+			device.Mode,
 		}
 		ch <- prometheus.MustNewConstMetric(
 			e.last_share_timestamp,
 			prometheus.GaugeValue,
-			float64(time.Now().Unix()-int64(device.mining.shares[3])),
+			float64(time.Now().Unix()-int64(device.Mining.Shares[3])),
 			labelValues...,
 		)
 		ch <- prometheus.MustNewConstMetric(
 			e.hashrate,
 			prometheus.GaugeValue,
-			float64(parseHashrate(device.mining.hashrate)),
+			float64(parseHashrate(device.Mining.Hashrate)),
 			labelValues...,
 		)
 		ch <- prometheus.MustNewConstMetric(
 			e.found_shares_total,
 			prometheus.CounterValue,
-			float64(device.mining.shares[0]),
+			float64(device.Mining.Shares[0]),
 			labelValues...,
 		)
 		ch <- prometheus.MustNewConstMetric(
 			e.rejected_shares_total,
 			prometheus.CounterValue,
-			float64(device.mining.shares[1]),
+			float64(device.Mining.Shares[1]),
 			labelValues...,
 		)
 		ch <- prometheus.MustNewConstMetric(
 			e.failed_shares_total,
 			prometheus.CounterValue,
-			float64(device.mining.shares[2]),
+			float64(device.Mining.Shares[2]),
 			labelValues...,
 		)
 		ch <- prometheus.MustNewConstMetric(
 			e.fan_speed_percent,
 			prometheus.GaugeValue,
-			float64(device.hardware.sensors[1]),
+			float64(device.Hardware.Sensors[1]),
 			labelValues...,
 		)
 		ch <- prometheus.MustNewConstMetric(
 			e.power_draw_watts,
 			prometheus.GaugeValue,
-			float64(device.hardware.sensors[2]),
+			float64(device.Hardware.Sensors[2]),
 			labelValues...,
 		)
 		ch <- prometheus.MustNewConstMetric(
 			e.temperature_degrees,
 			prometheus.GaugeValue,
-			float64(device.hardware.sensors[0]),
+			float64(device.Hardware.Sensors[0]),
 			labelValues...,
 		)
 		ch <- prometheus.MustNewConstMetric(
 			e.paused,
 			prometheus.GaugeValue,
-			float64(device.mining.paused),
-			append(labelValues, device.mining.pauseReason)...,
+			float64(boolToInt(device.Mining.Paused)),
+			append(labelValues, device.Mining.PauseReason)...,
 		)
 	}
 }
