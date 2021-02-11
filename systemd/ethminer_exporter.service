@@ -2,7 +2,7 @@
 Description=EthMiner_Exporter
 
 [Service]
-ExecStart=/opt/prometheus/ethminer_exporter
+ExecStart=/usr/local/bin/ethminer_exporter
 Restart=always
 
 [Install]
