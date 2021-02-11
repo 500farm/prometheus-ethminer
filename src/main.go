@@ -27,7 +27,7 @@ func metricsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	listenAddress := kingpin.Flag("listen", "Address to listen on for web interface and telemetry.").Default("0.0.0.0:8555").String()
+	listenAddress := kingpin.Flag("listen", "Address to listen on.").Default("0.0.0.0:8555").String()
 	kingpin.Version(version.Print("ethminer_exporter"))
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
