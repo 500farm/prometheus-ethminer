@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -14,28 +16,28 @@ const (
 )
 
 type EthminerCollector struct {
-	target string
+	targets []string
 	started_timestamp, connected, last_share_timestamp, hashrate, found_shares_total, rejected_shares_total,
 	failed_shares_total, fan_speed_percent, power_draw_watts, temperature_degrees, paused *prometheus.Desc
 }
 
-func newEthminerCollector(target string) (*EthminerCollector, error) {
-	deviceLabels := []string{"device", "name", "type", "mode"}
+func newEthminerCollector(targets []string) (*EthminerCollector, error) {
+	deviceLabels := []string{"api_endpoint", "device", "name", "type", "mode"}
 
 	return &EthminerCollector{
-		target: target,
+		targets: targets,
 
 		// Global
 		started_timestamp: prometheus.NewDesc(
 			namespace+"started_timestamp",
 			"Ethminer start time (unix timestamp)",
-			[]string{"version"},
+			[]string{"api_endpoint", "version"},
 			nil,
 		),
 		connected: prometheus.NewDesc(
 			namespace+"connected",
 			"Is Ethminer connected to the pool",
-			[]string{"uri"},
+			[]string{"api_endpoint", "uri"},
 			nil,
 		),
 
@@ -113,105 +115,118 @@ func (e *EthminerCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (e *EthminerCollector) Collect(ch chan<- prometheus.Metric) {
-	conn, err := net.Dial("tcp", e.target)
-	if err != nil {
+	errOut := func(code string, message string, err error) {
 		log.Errorln(err)
-		ch <- prometheus.NewInvalidMetric(prometheus.NewDesc("connection_error", "Error connecting to target", nil, nil), err)
-		return
-	}
-	defer conn.Close()
-
-	message := "{\"id\":0, \"jsonrpc\": \"2.0\", \"method\":\"miner_getstatdetail\"}\n"
-	conn.Write([]byte(message))
-	buf := make([]byte, 65536)
-	n, err := conn.Read(buf)
-	if err != nil {
-		log.Fatalln(err)
+		ch <- prometheus.NewInvalidMetric(prometheus.NewDesc(code, message, nil, nil), err)
 	}
 
-	ethstats := new(EthminerAPIResponse)
-	if err := json.Unmarshal(buf[:n], ethstats); err != nil {
-		log.Errorln(err)
-	}
-	if ethstats.Error.Code != 0 {
-		log.Errorln(ethstats.Error.Message)
-	}
-
-	result := ethstats.Result
-
-	ch <- prometheus.MustNewConstMetric(
-		e.started_timestamp,
-		prometheus.GaugeValue,
-		float64(time.Now().Unix()-int64(result.Host.Runtime)),
-		result.Host.Version,
-	)
-	ch <- prometheus.MustNewConstMetric(
-		e.connected,
-		prometheus.GaugeValue,
-		float64(boolToInt(result.Connection.Connected)),
-		result.Connection.URI,
-	)
-
-	for _, device := range result.Devices {
-		labelValues := []string{
-			device.Hardware.PCIID,
-			device.Hardware.Name,
-			device.Hardware.Type,
-			device.Mode,
+	for _, target := range e.targets {
+		conn, err := net.Dial("tcp", target)
+		if err != nil {
+			// intentionally ignore connection failures
+			continue
 		}
+		defer conn.Close()
+
+		message := "{\"id\":0, \"jsonrpc\": \"2.0\", \"method\":\"miner_getstatdetail\"}\n"
+		conn.Write([]byte(message))
+		buf := make([]byte, 65536)
+		n, err := conn.Read(buf)
+		if err != nil {
+			errOut("read_error", "Error reading from "+target, err)
+			continue
+		}
+
+		ethstats := new(EthminerAPIResponse)
+		if err := json.Unmarshal(buf[:n], ethstats); err != nil {
+			errOut("parse_error", "Invalid JSON from "+target, err)
+			continue
+		}
+		if ethstats.Error.Code != 0 {
+			message := ethstats.Error.Message
+			errOut("api_error", "Error from Ethminer API on "+target+": "+message, errors.New(message))
+			continue
+		}
+
+		result := ethstats.Result
+
 		ch <- prometheus.MustNewConstMetric(
-			e.last_share_timestamp,
+			e.started_timestamp,
 			prometheus.GaugeValue,
-			float64(time.Now().Unix()-int64(device.Mining.Shares[3])),
-			labelValues...,
+			float64(time.Now().Unix()-int64(result.Host.Runtime)),
+			target,
+			result.Host.Version,
 		)
 		ch <- prometheus.MustNewConstMetric(
-			e.hashrate,
+			e.connected,
 			prometheus.GaugeValue,
-			float64(parseHashrate(device.Mining.Hashrate)),
-			labelValues...,
+			float64(boolToInt(result.Connection.Connected)),
+			target,
+			result.Connection.URI,
 		)
-		ch <- prometheus.MustNewConstMetric(
-			e.found_shares_total,
-			prometheus.CounterValue,
-			float64(device.Mining.Shares[0]),
-			labelValues...,
-		)
-		ch <- prometheus.MustNewConstMetric(
-			e.rejected_shares_total,
-			prometheus.CounterValue,
-			float64(device.Mining.Shares[1]),
-			labelValues...,
-		)
-		ch <- prometheus.MustNewConstMetric(
-			e.failed_shares_total,
-			prometheus.CounterValue,
-			float64(device.Mining.Shares[2]),
-			labelValues...,
-		)
-		ch <- prometheus.MustNewConstMetric(
-			e.fan_speed_percent,
-			prometheus.GaugeValue,
-			float64(device.Hardware.Sensors[1]),
-			labelValues...,
-		)
-		ch <- prometheus.MustNewConstMetric(
-			e.power_draw_watts,
-			prometheus.GaugeValue,
-			float64(device.Hardware.Sensors[2]),
-			labelValues...,
-		)
-		ch <- prometheus.MustNewConstMetric(
-			e.temperature_degrees,
-			prometheus.GaugeValue,
-			float64(device.Hardware.Sensors[0]),
-			labelValues...,
-		)
-		ch <- prometheus.MustNewConstMetric(
-			e.paused,
-			prometheus.GaugeValue,
-			float64(boolToInt(device.Mining.Paused)),
-			append(labelValues, device.Mining.PauseReason)...,
-		)
+
+		for _, device := range result.Devices {
+			labelValues := []string{
+				target,
+				strings.ToUpper(device.Hardware.PCIID),
+				device.Hardware.Name,
+				device.Hardware.Type,
+				device.Mode,
+			}
+			ch <- prometheus.MustNewConstMetric(
+				e.last_share_timestamp,
+				prometheus.GaugeValue,
+				float64(time.Now().Unix()-int64(device.Mining.Shares[3])),
+				labelValues...,
+			)
+			ch <- prometheus.MustNewConstMetric(
+				e.hashrate,
+				prometheus.GaugeValue,
+				float64(parseHashrate(device.Mining.Hashrate)),
+				labelValues...,
+			)
+			ch <- prometheus.MustNewConstMetric(
+				e.found_shares_total,
+				prometheus.CounterValue,
+				float64(device.Mining.Shares[0]),
+				labelValues...,
+			)
+			ch <- prometheus.MustNewConstMetric(
+				e.rejected_shares_total,
+				prometheus.CounterValue,
+				float64(device.Mining.Shares[1]),
+				labelValues...,
+			)
+			ch <- prometheus.MustNewConstMetric(
+				e.failed_shares_total,
+				prometheus.CounterValue,
+				float64(device.Mining.Shares[2]),
+				labelValues...,
+			)
+			ch <- prometheus.MustNewConstMetric(
+				e.fan_speed_percent,
+				prometheus.GaugeValue,
+				float64(device.Hardware.Sensors[1]),
+				labelValues...,
+			)
+			ch <- prometheus.MustNewConstMetric(
+				e.power_draw_watts,
+				prometheus.GaugeValue,
+				float64(device.Hardware.Sensors[2]),
+				labelValues...,
+			)
+			ch <- prometheus.MustNewConstMetric(
+				e.temperature_degrees,
+				prometheus.GaugeValue,
+				float64(device.Hardware.Sensors[0]),
+				labelValues...,
+			)
+			ch <- prometheus.MustNewConstMetric(
+				e.paused,
+				prometheus.GaugeValue,
+				float64(boolToInt(device.Mining.Paused)),
+				append(labelValues, device.Mining.PauseReason)...,
+			)
+		}
 	}
 }

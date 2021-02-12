@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -11,15 +10,23 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
-func metricsHandler(w http.ResponseWriter, r *http.Request) {
-	target := r.URL.Query().Get("target")
-	if target == "" {
-		http.Error(w, fmt.Sprintf("target is not specified."), http.StatusBadRequest)
-		return
-	}
-	e, _ := newEthminerCollector(target)
+var (
+	listenAddress   = kingpin.Flag("listen", "Address to listen on.").Default("0.0.0.0:8555").String()
+	discoverAPIPort = kingpin.Flag("discover-api-port", "Port on which to look for Ethminer API on running docker containers.").Default("3333").Int()
+)
 
+func metricsHandler(w http.ResponseWriter, r *http.Request) {
 	registry := prometheus.NewRegistry()
+
+	target := r.URL.Query().Get("target")
+	var targets []string
+	if target != "" {
+		targets = []string{target}
+	} else {
+		targets = discoverTargets(*discoverAPIPort)
+	}
+
+	e, _ := newEthminerCollector(targets)
 	registry.MustRegister(e)
 
 	h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
@@ -27,7 +34,6 @@ func metricsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	listenAddress := kingpin.Flag("listen", "Address to listen on.").Default("0.0.0.0:8555").String()
 	kingpin.Version(version.Print("ethminer_exporter"))
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
