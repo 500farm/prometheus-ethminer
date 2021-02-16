@@ -11,8 +11,14 @@ import (
 )
 
 var (
-	listenAddress   = kingpin.Flag("listen", "Address to listen on.").Default("0.0.0.0:8555").String()
-	discoverAPIPort = kingpin.Flag("discover-api-port", "Port on which to look for Ethminer API on running docker containers.").Default("3333").Int()
+	listenAddress = kingpin.Flag(
+		"listen",
+		"Address to listen on.",
+	).Default("0.0.0.0:8555").String()
+	discoverAPIPort = kingpin.Flag(
+		"discover-api-port",
+		"Port on which to look for Ethminer API on localhost and running docker containers.",
+	).Default("3333").Int()
 )
 
 func metricsHandler(w http.ResponseWriter, r *http.Request) {
