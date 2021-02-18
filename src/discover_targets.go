@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -13,7 +14,12 @@ func getContainerIds(port int) []string {
 	cmd := exec.Command("/bin/sh", "-c", command)
 	out, err := cmd.Output()
 	if err != nil {
-		log.Errorln(err)
+		var ee *exec.ExitError
+		if errors.As(err, &ee) && ee.ExitCode() == 127 {
+			// exit code 127 means docker not found, do not log it
+		} else {
+			log.Errorln(err)
+		}
 		return []string{}
 	}
 	return strings.Split(strings.Trim(string(out), "\n"), "\n")
