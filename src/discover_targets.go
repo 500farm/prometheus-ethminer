@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -10,16 +9,16 @@ import (
 )
 
 func getContainerIds(port int) []string {
+	_, err := exec.LookPath("docker")
+	if err != nil {
+		// do docker installed
+		return []string{}
+	}
+
 	command := "docker ps --filter 'expose=" + fmt.Sprint(port) + "' | egrep -o '^[0-9a-f]{12}'"
 	cmd := exec.Command("/bin/sh", "-c", command)
 	out, err := cmd.Output()
 	if err != nil {
-		var ee *exec.ExitError
-		if errors.As(err, &ee) && ee.ExitCode() == 127 {
-			// exit code 127 means docker not found, do not log it
-		} else {
-			log.Errorln(err)
-		}
 		return []string{}
 	}
 	return strings.Split(strings.Trim(string(out), "\n"), "\n")
@@ -44,6 +43,5 @@ func discoverTargets(port int) []string {
 			result = append(result, ip+":"+fmt.Sprint(port))
 		}
 	}
-	log.Infoln("Discovered targets: ", result)
 	return result
 }
