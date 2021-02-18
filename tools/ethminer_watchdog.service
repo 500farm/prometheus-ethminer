@@ -1,0 +1,7 @@
+[Unit]
+Description=Kill Ethminers after SIGSEGV
+Wants=ethminer_watchdog.timer
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/ethminer_watchdog

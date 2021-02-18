@@ -1,0 +1,12 @@
+#!/bin/bash
+
+for ID in `docker ps --filter 'expose=3333' | egrep -o '^[0-9a-f]{12}'`
+do
+    if docker logs -n 50 $ID | grep SIGSEGV
+    then
+        echo Container $ID: SIGSEGV
+        docker stop $ID
+    else
+        echo Container $ID: OK
+    fi
+done
