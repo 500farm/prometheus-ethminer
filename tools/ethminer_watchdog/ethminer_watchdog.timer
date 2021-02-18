@@ -1,7 +1,7 @@
 [Unit]
 Description=Kill Ethminers after SIGSEGV
-After=docker
-Requires=docker
+After=docker.service
+Requires=docker.service
 
 [Timer]
 OnCalendar=*-*-* *:00/5:00
