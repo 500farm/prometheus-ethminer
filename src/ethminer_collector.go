@@ -12,21 +12,22 @@ import (
 )
 
 const (
-	namespace  = "ethminer_"
-	netTimeout = 1 * time.Second
+	namespace = "ethminer_"
 )
 
 type EthminerCollector struct {
-	targets []string
+	targets    []string
+	netTimeout time.Duration
 	started_timestamp, connected, last_share_timestamp, hashrate, found_shares_total, rejected_shares_total,
 	failed_shares_total, fan_speed_percent, power_draw_watts, temperature_degrees, paused *prometheus.Desc
 }
 
-func newEthminerCollector(targets []string) (*EthminerCollector, error) {
+func newEthminerCollector(targets []string, netTimeout time.Duration) (*EthminerCollector, error) {
 	deviceLabels := []string{"api_endpoint", "device", "name", "type", "mode"}
 
 	return &EthminerCollector{
-		targets: targets,
+		targets:    targets,
+		netTimeout: netTimeout,
 
 		// Global
 		started_timestamp: prometheus.NewDesc(
@@ -122,12 +123,12 @@ func (e *EthminerCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 
 	for _, target := range e.targets {
-		conn, err := net.DialTimeout("tcp", target, netTimeout)
+		conn, err := net.DialTimeout("tcp", target, e.netTimeout)
 		if err != nil {
 			// intentionally ignore connection failures
 			continue
 		}
-		conn.SetDeadline(time.Now().Add(netTimeout))
+		conn.SetDeadline(time.Now().Add(e.netTimeout))
 		defer conn.Close()
 
 		message := "{\"id\":0, \"jsonrpc\": \"2.0\", \"method\":\"miner_getstatdetail\"}\n"

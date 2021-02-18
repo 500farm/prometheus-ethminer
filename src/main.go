@@ -19,6 +19,10 @@ var (
 		"discover-api-port",
 		"Port on which to look for Ethminer API on localhost and running docker containers.",
 	).Default("3333").Int()
+	netTimeout = kingpin.Flag(
+		"net-timeout",
+		"Connection and read timeout for Ethminer API.",
+	).Default("1s").Duration()
 )
 
 func metricsHandler(w http.ResponseWriter, r *http.Request) {
@@ -32,7 +36,7 @@ func metricsHandler(w http.ResponseWriter, r *http.Request) {
 		targets = discoverTargets(*discoverAPIPort)
 	}
 
-	e, _ := newEthminerCollector(targets)
+	e, _ := newEthminerCollector(targets, *netTimeout)
 	registry.MustRegister(e)
 
 	h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
