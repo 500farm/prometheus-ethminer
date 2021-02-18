@@ -1,6 +1,6 @@
 [Unit]
 Description=EthMiner_Exporter
-After=docker
+After=docker.service
 
 [Service]
 ExecStart=/usr/local/bin/ethminer_exporter
