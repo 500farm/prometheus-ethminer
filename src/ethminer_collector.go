@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	namespace = "ethminer_"
+	namespace  = "ethminer_"
+	netTimeout = 1 * time.Second
 )
 
 type EthminerCollector struct {
@@ -121,11 +122,12 @@ func (e *EthminerCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 
 	for _, target := range e.targets {
-		conn, err := net.Dial("tcp", target)
+		conn, err := net.DialTimeout("tcp", target, netTimeout)
 		if err != nil {
 			// intentionally ignore connection failures
 			continue
 		}
+		conn.SetDeadline(time.Now().Add(netTimeout))
 		defer conn.Close()
 
 		message := "{\"id\":0, \"jsonrpc\": \"2.0\", \"method\":\"miner_getstatdetail\"}\n"
