@@ -16,7 +16,7 @@ type EthereumCollector struct {
 }
 
 func newEthereumCollector() (*EthereumCollector, error) {
-	namespace := "ethereum_"
+	namespace := "ethereum"
 
 	return &EthereumCollector{
 		block_time_seconds: prometheus.NewGauge(prometheus.GaugeOpts{
