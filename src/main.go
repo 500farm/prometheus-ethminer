@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -25,7 +26,7 @@ var (
 	).Default("1s").Duration()
 )
 
-func metricsHandler(w http.ResponseWriter, r *http.Request) {
+func metricsHandler(w http.ResponseWriter, r *http.Request, ethereumCollector *EthereumCollector) {
 	registry := prometheus.NewRegistry()
 
 	target := r.URL.Query().Get("target")
@@ -38,6 +39,7 @@ func metricsHandler(w http.ResponseWriter, r *http.Request) {
 
 	e, _ := newEthminerCollector(targets, *netTimeout)
 	registry.MustRegister(e)
+	registry.MustRegister(ethereumCollector)
 
 	h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
 	h.ServeHTTP(w, r)
@@ -49,8 +51,18 @@ func main() {
 	kingpin.Parse()
 
 	log.Infoln("Starting ethminer exporter")
+
+	ethereumCollector, _ := newEthereumCollector()
+	ethInfo, err := getEthereumInfo()
+	if err != nil {
+		log.Errorln(err)
+	} else {
+		log.Infoln("Read initial Ethereum info: ", ethInfo)
+		ethereumCollector.Update(ethInfo)
+	}
+
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
-		metricsHandler(w, r)
+		metricsHandler(w, r, ethereumCollector)
 	})
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<html>
@@ -78,6 +90,18 @@ func main() {
 		</body>
 		</html>`))
 	})
+
+	go func() {
+		for {
+			time.Sleep(time.Second * 60)
+			ethInfo, err := getEthereumInfo()
+			if err != nil {
+				log.Errorln(err)
+			} else {
+				ethereumCollector.Update(ethInfo)
+			}
+		}
+	}()
 
 	log.Infoln("Listening on", *listenAddress)
 	log.Fatal(http.ListenAndServe(*listenAddress, nil))
