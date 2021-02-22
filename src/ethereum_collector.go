@@ -9,7 +9,7 @@ import (
 type EthereumCollector struct {
 	block_time_seconds                prometheus.Gauge
 	block_reward_eth                  prometheus.Gauge
-	last_block_number                 prometheus.Counter
+	last_block_number                 prometheus.Gauge
 	difficulty_hashes                 prometheus.Gauge
 	network_hashrate_hashes_per_sec   prometheus.Gauge
 	eth_price_dollars                 prometheus.Gauge
@@ -30,7 +30,7 @@ func newEthereumCollector() (*EthereumCollector, error) {
 			Name:      "block_reward_eth",
 			Help:      "Reward for the last found block, in ETH",
 		}),
-		last_block_number: prometheus.NewCounter(prometheus.CounterOpts{
+		last_block_number: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      "last_block_number",
 			Help:      "Number of the last found block",
