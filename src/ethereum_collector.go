@@ -7,12 +7,13 @@ import (
 )
 
 type EthereumCollector struct {
-	block_time_seconds              prometheus.Gauge
-	block_reward_eth                prometheus.Gauge
-	last_block_number               prometheus.Counter
-	difficulty_hashes               prometheus.Gauge
-	network_hashrate_hashes_per_sec prometheus.Gauge
-	eth_price_dollars               prometheus.Gauge
+	block_time_seconds                prometheus.Gauge
+	block_reward_eth                  prometheus.Gauge
+	last_block_number                 prometheus.Counter
+	difficulty_hashes                 prometheus.Gauge
+	network_hashrate_hashes_per_sec   prometheus.Gauge
+	eth_price_dollars                 prometheus.Gauge
+	earnings_per_ghs_per_hour_dollars prometheus.Gauge
 }
 
 func newEthereumCollector() (*EthereumCollector, error) {
@@ -49,6 +50,11 @@ func newEthereumCollector() (*EthereumCollector, error) {
 			Name:      "eth_price_dollars",
 			Help:      "Current ETH price, in USD",
 		}),
+		earnings_per_ghs_per_hour_dollars: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "earnings_per_gh_per_hour_dollars",
+			Help:      "Mining earnings, dollars per GH/s per hour",
+		}),
 	}, nil
 }
 
@@ -59,6 +65,7 @@ func (e *EthereumCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- e.difficulty_hashes.Desc()
 	ch <- e.network_hashrate_hashes_per_sec.Desc()
 	ch <- e.eth_price_dollars.Desc()
+	ch <- e.earnings_per_ghs_per_hour_dollars.Desc()
 }
 
 func (e *EthereumCollector) Collect(ch chan<- prometheus.Metric) {
@@ -68,6 +75,7 @@ func (e *EthereumCollector) Collect(ch chan<- prometheus.Metric) {
 	ch <- e.difficulty_hashes
 	ch <- e.network_hashrate_hashes_per_sec
 	ch <- e.eth_price_dollars
+	ch <- e.earnings_per_ghs_per_hour_dollars
 }
 
 func (e *EthereumCollector) Update(info *EthereumInfo) {
@@ -78,4 +86,5 @@ func (e *EthereumCollector) Update(info *EthereumInfo) {
 	e.difficulty_hashes.Set(info.Difficulty)
 	e.network_hashrate_hashes_per_sec.Set(float64(info.NetworkHashRate))
 	e.eth_price_dollars.Set(info.ETHUSDPrice)
+	e.earnings_per_ghs_per_hour_dollars.Set(1e9 * 3600 / info.Difficulty * info.BlockReward * info.ETHUSDPrice)
 }
