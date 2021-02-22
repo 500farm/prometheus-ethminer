@@ -24,6 +24,10 @@ var (
 		"net-timeout",
 		"Connection and read timeout for Ethminer API.",
 	).Default("1s").Duration()
+	updateInterval = kingpin.Flag(
+		"update-interval",
+		"How often to query third-party API for updates (does not affect Ethminer metrics which are realtime).",
+	).Default("1m").Duration()
 )
 
 func metricsHandler(w http.ResponseWriter, r *http.Request, ethereumCollector *EthereumCollector) {
@@ -93,7 +97,7 @@ func main() {
 
 	go func() {
 		for {
-			time.Sleep(time.Second * 60)
+			time.Sleep(*updateInterval)
 			ethInfo, err := getEthereumInfo()
 			if err != nil {
 				log.Errorln(err)
