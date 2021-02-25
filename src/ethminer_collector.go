@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net"
+	"regexp"
 	"strings"
 	"time"
 
@@ -172,7 +173,7 @@ func (e *EthminerCollector) Collect(ch chan<- prometheus.Metric) {
 			labelValues := []string{
 				target,
 				strings.ToUpper(device.Hardware.PCIID),
-				device.Hardware.Name,
+				regexp.MustCompile(`\s+[\d\.]+\s*GB$`).ReplaceAllString(device.Hardware.Name, ""),
 				device.Hardware.Type,
 				device.Mode,
 			}
