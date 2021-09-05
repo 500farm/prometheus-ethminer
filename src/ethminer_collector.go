@@ -20,11 +20,11 @@ type EthminerCollector struct {
 	targets    []string
 	netTimeout time.Duration
 	started_timestamp, connected, last_share_timestamp, hashrate, found_shares_total, rejected_shares_total,
-	failed_shares_total, fan_speed_percent, power_draw_watts, temperature_degrees, paused *prometheus.Desc
+	failed_shares_total, fan_speed_percent, power_draw_watts, temperature_degrees, paused, device_info *prometheus.Desc
 }
 
 func newEthminerCollector(targets []string, netTimeout time.Duration) (*EthminerCollector, error) {
-	deviceLabels := []string{"api_endpoint", "device", "name", "type", "mode"}
+	deviceLabels := []string{"api_endpoint", "device_id"}
 
 	return &EthminerCollector{
 		targets:    targets,
@@ -97,6 +97,12 @@ func newEthminerCollector(targets []string, netTimeout time.Duration) (*Ethminer
 			namespace+"paused",
 			"Per-device: Is device paused",
 			append(deviceLabels, "reason"),
+			nil,
+		),
+		device_info: prometheus.NewDesc(
+			namespace+"device_info",
+			"Per-device: Device info",
+			append(deviceLabels, "device_name", "device_type", "device_mode"),
 			nil,
 		),
 	}, nil
@@ -173,9 +179,6 @@ func (e *EthminerCollector) Collect(ch chan<- prometheus.Metric) {
 			labelValues := []string{
 				target,
 				strings.ToUpper(device.Hardware.PCIID),
-				regexp.MustCompile(`\s+[\d\.]+\s*GB$`).ReplaceAllString(device.Hardware.Name, ""),
-				device.Hardware.Type,
-				device.Mode,
 			}
 			ch <- prometheus.MustNewConstMetric(
 				e.last_share_timestamp,
@@ -231,6 +234,18 @@ func (e *EthminerCollector) Collect(ch chan<- prometheus.Metric) {
 				float64(boolToInt(device.Mining.Paused)),
 				append(labelValues, device.Mining.PauseReason)...,
 			)
+			ch <- prometheus.MustNewConstMetric(
+				e.device_info,
+				prometheus.GaugeValue,
+				1.0,
+				append(
+					labelValues,
+					regexp.MustCompile(`\s+[\d\.]+\s*GB$`).ReplaceAllString(device.Hardware.Name, ""),
+					device.Hardware.Type,
+					device.Mode,
+				)...,
+			)
+
 		}
 	}
 }
