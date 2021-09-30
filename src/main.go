@@ -23,10 +23,6 @@ var (
 		"net-timeout",
 		"Connection and read timeout for Ethminer API.",
 	).Default("1s").Duration()
-	updateInterval = kingpin.Flag(
-		"update-interval",
-		"How often to query third-party API for updates (does not affect Ethminer metrics which are realtime).",
-	).Default("1m").Duration()
 )
 
 func metricsHandler(w http.ResponseWriter, r *http.Request) {
