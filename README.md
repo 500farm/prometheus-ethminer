@@ -12,7 +12,7 @@ After that, the exporter will be started automatically by systemd on startup.
 
 ### Usage
 
-By default, the `ethminer_exporter` listens on port 8555.
+By default, `ethminer_exporter` listens on port 8555.
 
 API endpoints are discovered automatically by looking for open port 3333 on localhost and running Docker containers.
 
