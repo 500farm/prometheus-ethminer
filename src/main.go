@@ -58,24 +58,16 @@ func main() {
 		<head>
 		<title>Ethminer Exporter</title>
 		<style>
-		label{
-		display:inline-block;
-		width:75px;
-		}
-		form label {
-		margin: 10px;
-		}
-		form input {
-		margin: 10px;
-		}
+		label { display:inline-block; }
 		</style>
 		</head>
 		<body>
 		<h1>Ethminer Exporter</h1>
 		<form action="/metrics">
-		<label>Target:</label> <input type="text" name="target" placeholder="X.X.X.X" value="1.2.3.4"><br>
+		<label>Target:</label> <input type="text" name="target" placeholder="X.X.X.X" value="127.0.0.1:3333">
 		<input type="submit" value="Submit">
 		</form>
+		<p><a href="/metrics">Auto-discover</a></p>
 		</body>
 		</html>`))
 	})
